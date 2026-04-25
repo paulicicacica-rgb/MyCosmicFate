@@ -1,6 +1,7 @@
 {
   "buildCommand": "npm install",
   "outputDirectory": "public",
+  "cleanUrls": true,
   "headers": [
     {
       "source": "/(.*)",
@@ -8,6 +9,10 @@
         {
           "key": "X-Robots-Tag",
           "value": "all"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }
