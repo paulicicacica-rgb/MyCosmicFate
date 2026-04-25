@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyCosmicFate — Your Reading Awaits</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #05071a; --purple: #8b45ff; --purple-soft: #b891ff;
+  --gold: #c9a84c; --cream: #f0eaff; --muted: rgba(200,180,255,0.45);
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--cream); font-family: 'Inter', sans-serif; overflow: hidden; }
+#starfield { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+#progress-bar {
+  position: fixed; top: 0; left: 0; height: 2px;
+  background: linear-gradient(90deg, var(--purple), var(--gold));
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  z-index: 100; box-shadow: 0 0 12px rgba(139,69,255,0.6);
+}
+
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 32px;
+}
+.logo { font-family: 'Cinzel', serif; font-size: 0.75rem; color: rgba(184,145,255,0.4); letter-spacing: 4px; }
+.q-counter { font-size: 0.68rem; color: rgba(184,145,255,0.4); letter-spacing: 2px; }
+
+#quiz-stage {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px 20px 40px; overflow-y: auto;
+}
+
+.q-card {
+  width: 100%; max-width: 780px; min-height: 72vh;
+  display: flex; flex-direction: column; justify-content: center;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  pointer-events: none; position: absolute;
+}
+.q-card.active { opacity: 1; transform: translateY(0); pointer-events: all; }
+.q-card.exit { opacity: 0; transform: translateY(-30px); transition: opacity 0.4s ease, transform 0.4s ease; pointer-events: none; }
+
+.q-visual { width: 100%; max-width: 460px; margin: 0 auto 28px; border-radius: 16px; overflow: hidden; }
+.q-visual-inner { width: 100%; height: 130px; display: flex; align-items: center; justify-content: center; border-radius: 16px; }
+
+.visual-stars { background: radial-gradient(ellipse at center, rgba(139,69,255,0.25) 0%, rgba(5,7,26,0.9) 70%); border: 1px solid rgba(139,69,255,0.18); }
+.visual-fire  { background: radial-gradient(ellipse at center, rgba(255,120,40,0.22) 0%, rgba(5,7,26,0.9) 70%); border: 1px solid rgba(255,120,40,0.18); }
+.visual-water { background: radial-gradient(ellipse at center, rgba(40,130,255,0.22) 0%, rgba(5,7,26,0.9) 70%); border: 1px solid rgba(40,130,255,0.18); }
+.visual-earth { background: radial-gradient(ellipse at center, rgba(80,180,80,0.18) 0%, rgba(5,7,26,0.9) 70%); border: 1px solid rgba(80,180,80,0.15); }
+.visual-gold  { background: radial-gradient(ellipse at center, rgba(201,168,76,0.25) 0%, rgba(5,7,26,0.9) 70%); border: 1px solid rgba(201,168,76,0.18); }
+.visual-dark  { background: radial-gradient(ellipse at center, rgba(60,20,100,0.45) 0%, rgba(5,7,26,0.95) 70%); border: 1px solid rgba(100,50,180,0.18); }
+
+.visual-glyph {
+  font-size: 3.8rem; color: rgba(184,145,255,0.55); font-family: 'Cinzel', serif;
+  filter: drop-shadow(0 0 18px rgba(139,69,255,0.45));
+  animation: floatGlyph 4s ease-in-out infinite; line-height: 1;
+}
+@keyframes floatGlyph { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+.q-step { font-size: 0.6rem; letter-spacing: 5px; color: var(--purple-soft); opacity: 0.5; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
+.q-text { font-family: 'Cinzel', serif; font-size: clamp(1.2rem, 3.2vw, 1.9rem); line-height: 1.3; color: var(--cream); text-align: center; margin-bottom: 8px; }
+.q-subtext { font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-style: italic; color: var(--muted); text-align: center; margin-bottom: 28px; line-height: 1.6; }
+
+.options { display: grid; gap: 10px; }
+.options.two-col { grid-template-columns: 1fr 1fr; }
+
+.option {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(184,145,255,0.15);
+  border-radius: 14px; padding: 20px 16px;
+  cursor: pointer; min-height: 70px;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; text-align: center;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.option:active { transform: scale(0.97); }
+.option.selected { background: rgba(139,69,255,0.18); border-color: var(--purple-soft); }
+
+.option-icon { font-size: 1.1rem; flex-shrink: 0; color: var(--purple-soft); line-height: 1; }
+.option-label { font-size: 1rem; font-weight: 500; color: var(--cream); line-height: 1.3; }
+
+.q-input {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(184,145,255,0.2);
+  border-radius: 14px; padding: 16px 20px; font-size: 1rem; color: var(--cream);
+  font-family: 'Cormorant Garamond', serif; width: 100%; outline: none;
+  transition: border-color 0.3s; text-align: center; letter-spacing: 2px;
+}
+.q-input:focus { border-color: var(--purple-soft); background: rgba(139,69,255,0.06); }
+.q-input::placeholder { color: rgba(184,145,255,0.3); }
+.input-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.next-btn { margin-top: 24px; display: flex; justify-content: center; }
+.btn-next {
+  background: linear-gradient(135deg, var(--purple), #5a1fb5);
+  color: #fff; border: none; padding: 15px 44px; border-radius: 50px;
+  font-family: 'Cinzel', serif; font-size: 0.82rem; letter-spacing: 2px;
+  cursor: pointer; box-shadow: 0 0 28px rgba(139,69,255,0.35);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  text-transform: uppercase;
+}
+.btn-next.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+.bg-orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(80px); }
+.bg-orb-1 { width: 400px; height: 400px; background: rgba(139,69,255,0.06); top: -100px; left: -100px; }
+.bg-orb-2 { width: 300px; height: 300px; background: rgba(201,168,76,0.04); bottom: -80px; right: -80px; }
+
+/* Share wall */
+#share-wall {
+  position: fixed; inset: 0; z-index: 200; background: var(--bg);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px; text-align: center; overflow-y: auto;
+}
+#share-wall.show { display: flex; }
+
+.share-steps-new { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 440px; margin-bottom: 28px; }
+.share-step-new {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(184,145,255,0.15);
+  border-radius: 14px; padding: 16px 18px; transition: all 0.3s;
+}
+.share-step-new.locked { opacity: 0.4; }
+.share-step-new.done { border-color: rgba(50,200,100,0.4); background: rgba(50,200,100,0.05); opacity: 1; }
+.sstep-left { display: flex; align-items: center; gap: 14px; }
+.sstep-num {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(139,69,255,0.2); border: 1px solid rgba(184,145,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; color: var(--purple-soft); transition: all 0.3s;
+}
+.share-step-new.done .sstep-num { background: rgba(50,200,100,0.2); border-color: rgba(50,200,100,0.5); color: #64e080; }
+.sstep-text { font-size: 0.82rem; color: rgba(220,205,255,0.65); line-height: 1.4; text-align: left; }
+.sstep-text strong { display: block; color: var(--cream); font-size: 0.86rem; margin-bottom: 2px; }
+.sstep-btn {
+  background: rgba(24,119,242,0.15); border: 1px solid rgba(24,119,242,0.3);
+  color: rgba(100,160,255,0.9); padding: 8px 18px; border-radius: 50px;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 1px;
+  cursor: pointer; transition: all 0.3s; white-space: nowrap;
+}
+.sstep-btn:disabled { opacity: 0.4; cursor: default; }
+.sstep-btn.done-btn { background: rgba(50,200,100,0.15); border-color: rgba(50,200,100,0.4); color: #64e080; }
+
+.share-wall-title { font-family: 'Cinzel', serif; font-size: clamp(1.4rem, 4vw, 2rem); color: var(--cream); margin-bottom: 10px; }
+.share-wall-sub { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1rem; color: var(--muted); margin-bottom: 28px; max-width: 400px; line-height: 1.7; }
+.skip-link { font-size: 0.72rem; color: rgba(184,145,255,0.3); letter-spacing: 1px; cursor: pointer; margin-top: 8px; text-decoration: underline; }
+
+/* Result screen */
+#result-screen {
+  position: fixed; inset: 0; z-index: 200; background: var(--bg);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px; text-align: center; overflow-y: auto;
+}
+#result-screen.show { display: flex; }
+
+.result-orb {
+  width: 90px; height: 90px; border-radius: 50%; margin-bottom: 28px;
+  background: radial-gradient(circle at 35% 35%, #9b6dff, #4a1a8a 50%, #0d0520 80%);
+  box-shadow: 0 0 60px rgba(155,109,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; animation: pulseOrb 3s ease-in-out infinite;
+}
+@keyframes pulseOrb { 0%,100%{box-shadow:0 0 60px rgba(155,109,255,0.5)}50%{box-shadow:0 0 100px rgba(155,109,255,0.85)} }
+
+.result-title { font-family: 'Cinzel', serif; font-size: clamp(1.4rem,4vw,2.1rem); color: var(--cream); margin-bottom: 12px; }
+.result-archetype { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; color: var(--purple-soft); margin-bottom: 20px; }
+.result-teaser { font-size: 0.88rem; color: rgba(210,195,240,0.65); line-height: 1.8; max-width: 440px; margin-bottom: 32px; }
+
+.result-ctas { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; }
+.cta-paid {
+  background: linear-gradient(135deg, var(--purple), #5a1fb5);
+  color: #fff; border: none; padding: 16px 28px; border-radius: 50px;
+  font-family: 'Cinzel', serif; font-size: 0.82rem; letter-spacing: 2px;
+  cursor: pointer; box-shadow: 0 0 30px rgba(139,69,255,0.4);
+  text-transform: uppercase; transition: transform 0.2s;
+}
+.cta-paid:active { transform: scale(0.97); }
+.cta-paid-2 {
+  background: transparent; color: var(--gold);
+  border: 1px solid rgba(201,168,76,0.35); padding: 14px 28px; border-radius: 50px;
+  font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: 2px;
+  cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+}
+.cta-paid-2:active { background: rgba(201,168,76,0.08); }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div id="progress-bar" style="width:0%"></div>
+
+<nav>
+  <div class="logo">✦ MyCosmicFate</div>
+  <div class="q-counter" id="q-counter">1 of 18</div>
+</nav>
+
+<div id="quiz-stage"></div>
+
+<div id="share-wall">
+  <div style="font-size:0.62rem;letter-spacing:4px;color:rgba(184,145,255,0.4);text-transform:uppercase;margin-bottom:16px;">Your Reading Is Ready</div>
+  <h2 class="share-wall-title">One Final Step</h2>
+  <p class="share-wall-sub">Share this to 3 Facebook groups to reveal your cosmic fate reading.</p>
+  <div class="share-steps-new">
+    <div class="share-step-new" id="sstep1">
+      <div class="sstep-left">
+        <div class="sstep-num" id="sstepnum1">I</div>
+        <div class="sstep-text"><strong>Share 1</strong></div>
+      </div>
+      <button class="sstep-btn" id="sstepbtn1" onclick="doFBShare(1)">Share ✦</button>
+    </div>
+    <div class="share-step-new locked" id="sstep2">
+      <div class="sstep-left">
+        <div class="sstep-num" id="sstepnum2">II</div>
+        <div class="sstep-text"><strong>Share 2</strong></div>
+      </div>
+      <button class="sstep-btn" id="sstepbtn2" onclick="doFBShare(2)" disabled>Share ✦</button>
+    </div>
+    <div class="share-step-new locked" id="sstep3">
+      <div class="sstep-left">
+        <div class="sstep-num" id="sstepnum3">III</div>
+        <div class="sstep-text"><strong>Share 3</strong></div>
+      </div>
+      <button class="sstep-btn" id="sstepbtn3" onclick="doFBShare(3)" disabled>Share ✦</button>
+    </div>
+  </div>
+  <div class="skip-link" id="skip-link">Skip — reveal my reading</div>
+</div>
+
+<div id="result-screen">
+  <div class="result-orb">✦</div>
+  <p style="font-size:0.62rem;letter-spacing:4px;color:var(--muted);margin-bottom:14px;text-transform:uppercase;">Your Cosmic Fate Is Revealed</p>
+  <h2 class="result-title" id="result-title"></h2>
+  <p class="result-archetype" id="result-archetype"></p>
+  <p class="result-teaser" id="result-teaser"></p>
+  <div class="result-ctas">
+    <input id="buyer-email" type="email" placeholder="Your email — report sent here" autocomplete="email" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(184,145,255,0.2);border-radius:14px;padding:14px 20px;font-size:0.9rem;color:#f0eaff;font-family:'Inter',sans-serif;outline:none;margin-bottom:4px;transition:border-color 0.3s;text-align:center;" />
+    <button class="cta-paid" id="btn-basic" onclick="startCheckout('basic')">Unlock My Full Reading — €7.99</button>
+    <button class="cta-paid-2" id="btn-deep" onclick="startCheckout('deep')">Full Reading + Compatibility — €15.99</button>
+  </div>
+  <p style="margin-top:16px;font-size:0.7rem;color:var(--muted);">✦ Personalised report · Delivered to your inbox instantly</p>
+</div>
+
+<script>
+window.fbAsyncInit = function() { FB.init({ appId: '706399592555862', xfbml: false, version: 'v19.0' }); };
+(function(d,s,id){ var js,fjs=d.getElementsByTagName(s)[0]; if(d.getElementById(id))return; js=d.createElement(s);js.id=id; js.src='https://connect.facebook.net/en_US/sdk.js'; fjs.parentNode.insertBefore(js,fjs); }(document,'script','facebook-jssdk'));
+
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resizeCanvas(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+function initStars(){ stars=[]; for(let i=0;i<160;i++) stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.2,phase:Math.random()*Math.PI*2,speed:0.002+Math.random()*0.003}); }
+function drawStars(){ ctx.clearRect(0,0,canvas.width,canvas.height); const t=Date.now()*0.001; stars.forEach(s=>{ const a=(Math.sin(s.phase+t*s.speed*10)+1)/2*0.7+0.05; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(200,175,255,${a})`; ctx.fill(); }); requestAnimationFrame(drawStars); }
+resizeCanvas(); initStars(); drawStars();
+window.addEventListener('resize',()=>{ resizeCanvas(); initStars(); });
+
+const Q = [
+  {
+    type:'date', visual:'visual-stars', glyph:'✦', step:'I · The Numbers',
+    text:'What is your date of birth?',
+    sub:'Your Life Path number is calculated from this.',
+    fields:[{id:'day',placeholder:'Day',type:'number',min:1,max:31},{id:'month',placeholder:'Month',type:'number',min:1,max:12},{id:'year',placeholder:'Year',type:'number',min:1940,max:2010}]
+  },
+  {
+    type:'input', visual:'visual-stars', glyph:'☽', step:'II · The Hour',
+    text:'What time were you born?',
+    sub:'Approximate is fine. Determines your rising sign.',
+    placeholder:"e.g. 3:20 AM  or  I don't know",
+    inputId:'birthtime'
+  },
+  {
+    type:'input', visual:'visual-earth', glyph:'⊕', step:'III · The Place',
+    text:'Where were you born?',
+    sub:'Sets your astrological houses.',
+    placeholder:'City, Country',
+    inputId:'birthplace'
+  },
+  {
+    type:'choice', visual:'visual-dark', glyph:'☽', step:'IV · The Moon',
+    text:'Which moon phase calls to you most?',
+    sub:'',
+    options:[
+      {icon:'🌑', label:'New Moon'},
+      {icon:'🌓', label:'Waxing'},
+      {icon:'🌕', label:'Full Moon'},
+      {icon:'🌗', label:'Waning'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-fire', glyph:'🜂', step:'V · The Element',
+    text:'Which element are you?',
+    sub:'',
+    options:[
+      {icon:'🜂', label:'Fire'},
+      {icon:'🜄', label:'Water'},
+      {icon:'🜃', label:'Earth'},
+      {icon:'🜁', label:'Air'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-gold', glyph:'♄', step:'VI · Saturn',
+    text:'What keeps happening in your life no matter what you do?',
+    sub:'',
+    options:[
+      {icon:'⧗', label:'Starting strong, not finishing'},
+      {icon:'⟳', label:'Choosing the wrong people'},
+      {icon:'◬', label:'Getting close, then pulling back'},
+      {icon:'⌘', label:'Always putting others first'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-stars', glyph:'♃', step:'VII · Jupiter',
+    text:'Which planet do you feel most connected to?',
+    sub:'',
+    options:[
+      {icon:'♄', label:'Saturn — karma and lessons'},
+      {icon:'♃', label:'Jupiter — luck and expansion'},
+      {icon:'♀', label:'Venus — love and beauty'},
+      {icon:'♂', label:'Mars — fire and will'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-dark', glyph:'✦', step:'VIII · The Wound',
+    text:'What did you lose that changed you?',
+    sub:'',
+    options:[
+      {icon:'◎', label:'A person'},
+      {icon:'⧖', label:'An opportunity'},
+      {icon:'◌', label:'Your confidence'},
+      {icon:'≋', label:'Your trust in people'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-water', glyph:'☽', step:'IX · The Intuition',
+    text:'How does your intuition speak to you?',
+    sub:'',
+    options:[
+      {icon:'⊹', label:'I see signs everywhere'},
+      {icon:'◑', label:'I feel it in my body'},
+      {icon:'✦', label:'I dream things before they happen'},
+      {icon:'◎', label:'I just know — no explanation'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-gold', glyph:'⚖', step:'X · Venus',
+    text:'What does love always ask of you?',
+    sub:'',
+    options:[
+      {icon:'♡', label:'To give more than I receive'},
+      {icon:'◌', label:'To open up when I want to close'},
+      {icon:'⧖', label:'To stay longer than I should'},
+      {icon:'◬', label:'To need less than I do'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-stars', glyph:'✧', step:'XI · The Vision',
+    text:'What are you actually building toward?',
+    sub:'',
+    options:[
+      {icon:'↯', label:'Freedom'},
+      {icon:'♡', label:'Real love'},
+      {icon:'⌬', label:'Something that lasts'},
+      {icon:'◑', label:'Peace'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-dark', glyph:'◈', step:'XII · The Tarot',
+    text:'Which tarot energy feels like yours?',
+    sub:'',
+    options:[
+      {icon:'I',   label:'The Magician — I make things happen'},
+      {icon:'☽',   label:'The Moon — I feel what others can\'t'},
+      {icon:'XVI', label:'The Tower — everything keeps changing'},
+      {icon:'XVII',label:'The Star — I keep hope alive'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-fire', glyph:'🜂', step:'XIII · Mars',
+    text:'What makes you genuinely angry?',
+    sub:'',
+    options:[
+      {icon:'⬡', label:'Wasted potential'},
+      {icon:'◬', label:'Dishonesty'},
+      {icon:'⧗', label:'Injustice'},
+      {icon:'✦', label:'Being underestimated'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-gold', glyph:'♄', step:'XIV · The Block',
+    text:'What is really stopping you?',
+    sub:'',
+    options:[
+      {icon:'⧗', label:'Fear of what changes if it works'},
+      {icon:'⌬', label:'Waiting until I\'m ready'},
+      {icon:'◬', label:'I don\'t fully believe I deserve it'},
+      {icon:'≋', label:'I tried before and it failed'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-dark', glyph:'◉', step:'XV · The Karma',
+    text:'What do you believe about fate?',
+    sub:'',
+    options:[
+      {icon:'✦', label:'Everything is written'},
+      {icon:'↯', label:'We write it ourselves'},
+      {icon:'◑', label:'Both — it\'s a conversation'},
+      {icon:'◌', label:'I used to believe, now I\'m not sure'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-stars', glyph:'✧', step:'XVI · The Cycle',
+    text:'Where are you in your life right now?',
+    sub:'',
+    options:[
+      {icon:'↯', label:'In motion'},
+      {icon:'◑', label:'At a threshold'},
+      {icon:'≋', label:'Rebuilding'},
+      {icon:'⊘', label:'Stuck'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-gold', glyph:'☉', step:'XVII · The Strength',
+    text:'What do you most underestimate about yourself?',
+    sub:'',
+    options:[
+      {icon:'◎', label:'How clearly I see things'},
+      {icon:'⊹', label:'How much I\'ve survived'},
+      {icon:'♡', label:'The effect I have on people'},
+      {icon:'⌘', label:'What I\'m capable of building'}
+    ]
+  },
+  {
+    type:'choice', visual:'visual-dark', glyph:'✦', step:'XVIII · The Question',
+    text:'What do you need this reading to tell you?',
+    sub:'',
+    options:[
+      {icon:'⊹', label:'Why I keep repeating the same patterns'},
+      {icon:'◎', label:'What I\'m actually built for'},
+      {icon:'♡', label:'Why my relationships follow the same arc'},
+      {icon:'⌬', label:'What\'s stopping me from the life I can see'}
+    ]
+  }
+];
+
+let current = 0;
+const answers = {};
+
+function renderQuestion(index) {
+  const stage = document.getElementById('quiz-stage');
+  const q = Q[index];
+  document.getElementById('progress-bar').style.width = (index / Q.length * 100) + '%';
+  document.getElementById('q-counter').textContent = (index + 1) + ' of ' + Q.length;
+
+  const card = document.createElement('div');
+  card.className = 'q-card';
+  card.id = 'card-' + index;
+
+  let bodyHTML = '';
+  if (q.type === 'date') {
+    bodyHTML = '<div class="input-row">' +
+      q.fields.map(f => '<input class="q-input" id="' + f.id + '" type="' + f.type + '" placeholder="' + f.placeholder + '" min="' + f.min + '" max="' + f.max + '" inputmode="numeric" />').join('') +
+      '</div>';
+  } else if (q.type === 'input') {
+    bodyHTML = '<input class="q-input" id="' + q.inputId + '" type="text" placeholder="' + q.placeholder + '" />';
+  } else {
+    bodyHTML = '<div class="options two-col" id="opts-' + index + '">' +
+      q.options.map(function(o, i) {
+        return '<div class="option" data-q="' + index + '" data-o="' + i + '">' +
+               '<div class="option-icon">' + o.icon + '</div>' +
+               '<div class="option-label">' + o.label + '</div>' +
+               '</div>';
+      }).join('') +
+      '</div>';
+  }
+
+  var nextBtnHTML = (q.type === 'date' || q.type === 'input')
+    ? '<div class="next-btn"><button class="btn-next" id="next-' + index + '">Continue ✦</button></div>' : '';
+
+  card.innerHTML =
+    '<div class="q-visual"><div class="q-visual-inner ' + (q.visual||'visual-stars') + '"><div class="visual-glyph">' + (q.glyph||'✦') + '</div></div></div>' +
+    '<p class="q-step">' + q.step + '</p>' +
+    '<h2 class="q-text">' + q.text + '</h2>' +
+    (q.sub ? '<p class="q-subtext">' + q.sub + '</p>' : '') +
+    bodyHTML + nextBtnHTML;
+
+  stage.appendChild(card);
+
+  if (q.type === 'date') {
+    q.fields.forEach(function(f) {
+      var el = card.querySelector('#' + f.id);
+      if (el) el.addEventListener('input', function() { checkInputs(index); });
+    });
+  } else if (q.type === 'input') {
+    var el = card.querySelector('#' + q.inputId);
+    if (el) el.addEventListener('input', function() { checkInputs(index); });
+  }
+
+  var nextBtn = card.querySelector('#next-' + index);
+  if (nextBtn) nextBtn.addEventListener('click', function() { nextQuestion(index); });
+
+  requestAnimationFrame(function() { requestAnimationFrame(function() { card.classList.add('active'); }); });
+}
+
+document.addEventListener('click', function(e) {
+  var opt = e.target.closest('.option[data-q]');
+  if (!opt) return;
+  var qi = parseInt(opt.getAttribute('data-q'));
+  var oi = parseInt(opt.getAttribute('data-o'));
+  var container = document.getElementById('opts-' + qi);
+  if (container) container.querySelectorAll('.option').forEach(function(o) { o.classList.remove('selected'); });
+  opt.classList.add('selected');
+  answers[qi] = oi;
+  setTimeout(function() { nextQuestion(qi); }, 420);
+});
+
+function checkInputs(index) {
+  var q = Q[index];
+  var ok = false;
+  if (q.type === 'date') {
+    ok = q.fields.every(function(f) { var el = document.getElementById(f.id); return el && el.value.trim(); });
+  } else if (q.type === 'input') {
+    var el = document.getElementById(q.inputId);
+    ok = el && el.value.trim().length > 0;
+  }
+  if (ok) { var btn = document.getElementById('next-' + index); if (btn) btn.classList.add('visible'); }
+}
+
+function nextQuestion(index) {
+  var card = document.getElementById('card-' + index);
+  card.classList.remove('active');
+  card.classList.add('exit');
+  setTimeout(function() {
+    card.remove();
+    current++;
+    if (current < Q.length) renderQuestion(current);
+    else showShareWall();
+  }, 400);
+}
+
+function showShareWall() {
+  document.getElementById('progress-bar').style.width = '100%';
+  document.getElementById('share-wall').classList.add('show');
+}
+
+var sharesComplete = 0, sharePending = 0;
+
+function doFBShare(num) {
+  sharePending = num;
+  FB.ui({
+    method: 'share', href: 'https://mycosmicfate.com',
+    quote: 'The stars just revealed something about me I\'ve never been able to put into words. If you\'ve ever felt like you were built for something specific but couldn\'t name it — take this reading. It\'s uncanny.'
+  }, function() { markShareDone(sharePending); });
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && sharePending > 0) {
+    var step = document.getElementById('sstep' + sharePending);
+    if (step && !step.classList.contains('done')) markShareDone(sharePending);
+  }
+});
+
+function markShareDone(num) {
+  var step = document.getElementById('sstep' + num);
+  if (!step || step.classList.contains('done')) return;
+  step.classList.add('done'); step.classList.remove('locked');
+  document.getElementById('sstepnum' + num).textContent = '✓';
+  var btn = document.getElementById('sstepbtn' + num);
+  btn.textContent = 'Shared ✓'; btn.classList.add('done-btn'); btn.disabled = true;
+  sharesComplete++; sharePending = 0;
+  var next = document.getElementById('sstep' + (num+1));
+  var nextBtn = document.getElementById('sstepbtn' + (num+1));
+  if (next) next.classList.remove('locked');
+  if (nextBtn) nextBtn.disabled = false;
+  if (sharesComplete >= 3) showResult();
+}
+
+document.getElementById('skip-link').addEventListener('click', showResult);
+
+function showResult() {
+  document.getElementById('share-wall').classList.remove('show');
+  document.getElementById('result-screen').classList.add('show');
+  var wound  = answers[7]  || 0;
+  var vision = answers[10] || 0;
+  var archetypes = [
+    { title:'The Wounded Architect',    line:'"You were sent to build what was never built for you."',         teaser:"Your life path carries the energy of creation under pressure. Every setback was load-bearing. Every loss taught you something about foundations. Your shadow has been whispering that you don't deserve what you're building. That voice is the last wall between you and everything." },
+    { title:'The Hidden Flame',         line:'"You were sent to burn through what others couldn\'t touch."',   teaser:"Your numbers reveal someone who arrived with fire that the world immediately tried to extinguish. But fire cannot be permanently put out — only hidden. Every time you've been quiet, you've been gathering. The question your chart asks: what are you still keeping contained?" },
+    { title:'The Deep Walker',          line:'"You were sent to go where others turn back."',                  teaser:"You were never meant to live on the surface. Your birth configuration points to a soul designed for depth — in relationships, in understanding, in purpose. You feel things others can't name. You've been called too much, too intense, too deep. Those weren't insults. They were a map." },
+    { title:'The Reluctant Lighthouse', line:'"You were sent to guide people who don\'t yet know they\'re lost."', teaser:"You have a pattern of being found by people in crisis. This is not coincidence — it is your cosmic function. The tension in your chart is between your own unhealed places and the light you still somehow transmit. You give what you most need to receive." }
+  ];
+  var a = archetypes[(wound + vision) % archetypes.length];
+  document.getElementById('result-title').textContent = a.title;
+  document.getElementById('result-archetype').textContent = a.line;
+  document.getElementById('result-teaser').textContent = a.teaser;
+}
+
+renderQuestion(0);
+
+async function startCheckout(tier) {
+  var emailEl = document.getElementById('buyer-email');
+  var email = emailEl.value.trim();
+  if (!email || !email.includes('@')) {
+    emailEl.style.borderColor = '#ff6b6b';
+    emailEl.placeholder = 'Enter your email first';
+    emailEl.focus();
+    return;
+  }
+  emailEl.style.borderColor = 'rgba(184,145,255,0.2)';
+  var btn = document.getElementById(tier === 'deep' ? 'btn-deep' : 'btn-basic');
+  var original = btn.textContent;
+  btn.textContent = 'Opening checkout...';
+  btn.disabled = true;
+  try {
+    var res = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: answers, email: email, tier: tier })
+    });
+    var data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { throw new Error('no url'); }
+  } catch(e) {
+    btn.textContent = original;
+    btn.disabled = false;
+    alert('Something went wrong — please try again.');
+  }
+}
+</script>
+</body>
+</html>
