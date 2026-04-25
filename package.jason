@@ -1,4 +1,4 @@
-{
+{ 
   "dependencies": {
     "stripe": "^14.0.0",
     "@anthropic-ai/sdk": "^0.39.0",
