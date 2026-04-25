@@ -74,6 +74,7 @@ module.exports = async (req, res) => {
 async function saveToRedis(key, data) {
   const value = encodeURIComponent(JSON.stringify(data));
   const ex = 60 * 60 * 24 * 30; // 30 days
+ console.log('Redis URL:', process.env.UPSTASH_REDIS_REST_URL?.slice(0,30), 'Token:', process.env.UPSTASH_REDIS_REST_TOKEN?.slice(0,10));
   const url = `${process.env.UPSTASH_REDIS_REST_URL}/set/report:${key}/${value}/ex/${ex}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
