@@ -1,6 +1,17 @@
 {
   "buildCommand": "npm install",
   "outputDirectory": "public",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "all"
+        }
+      ]
+    }
+  ],
   "functions": {
     "api/*.js": {
       "memory": 1024,
